@@ -29,11 +29,13 @@ TRAINING_FILE_NAME = 'dataset/train.csv'
 KEYWORD_OHE_PATH = './lib/keyword_ohe.lib'
 TEXT_VECTORIZER_PATH = './lib/text_vectorizer.lib'
 TRAINING_DATAFRAME_PATH = './lib/training_df.lib'
-TARGET_DATAFRAME_PATH = './lib/target_df.lib'
+TRAINING_TARGET_PATH = './lib/training_target.lib'
+TESTING_TARGET_PATH = './lib/testing_target.lib'
+TESTING_DATAFRAME_PATH = './lib/target_df.lib'
 KEYWORD_LBE_PATH = './lib/keyword_lbe.lib'
 USE_LABEL_ENCODER = False
-SAVE_MODEL = True
-USE_LEMMATIZER = True
+SAVE_MODEL = False
+USE_LEMMATIZER = False
 USE_LANCASTER_STEM = False
 
 def download_nltk_package():
@@ -227,27 +229,39 @@ X = X.dropna()
 y = X['target']
 X = X.drop(columns=['id', 'target'])
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, shuffle=True)
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, shuffle=True)
 
 # X_train, vectorizer = pre_processing(X_train, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
 #                     TRAINING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
 #                     USE_LEMMATIZER, USE_LANCASTER_STEM, None)
 
+# if SAVE_MODEL:
+#     dump(y_train, TRAINING_TARGET_PATH)
+#     dump(y_test, TESTING_TARGET_PATH) 
+
 # X_test, _ = pre_processing(X_test, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
-#                     TARGET_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
+#                     TESTING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
 #                     USE_LEMMATIZER, USE_LANCASTER_STEM, vectorizer)
 
 X_train = load(TRAINING_DATAFRAME_PATH)
 vectorizer = load(TEXT_VECTORIZER_PATH)
-X_test = load(TARGET_DATAFRAME_PATH)
+X_test = load(TESTING_DATAFRAME_PATH)
+y_train = load(TRAINING_TARGET_PATH)
+y_test = load(TESTING_TARGET_PATH)
+
+# scaler = MinMaxScaler()
+# X_train = scaler.fit_transform(X_train)
+# scaler = MinMaxScaler()
+# X_test = scaler.fit_transform(X_test)
 
 
 # clf = BernoulliNB()
-# clf = MultinomialNB()
+clf = MultinomialNB()
 # clf = GaussianNB()
-clf = RandomForestClassifier(n_jobs=3, n_estimators=200, verbose=True)
+# clf = RandomForestClassifier(n_jobs=3, n_estimators=500, verbose=True)
+# clf = LinearSVC()
 
-# clf = LogisticRegression(c=1, penalty='l2')
+# clf = LogisticRegression()
 clf.fit(X_train, y_train)
 
 y_pred = clf.predict(X_test)
