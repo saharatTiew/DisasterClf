@@ -25,15 +25,15 @@ from sklearn.linear_model import LogisticRegression
 # in train set, keyword has NaN (missing value) = 61 rows
 # in train set, location has NaN (missing value) = 2533 rows
 
-TRAINING_FILE_NAME = 'train.csv'
+TRAINING_FILE_NAME = 'dataset/train.csv'
 KEYWORD_OHE_PATH = './lib/keyword_ohe.lib'
 TEXT_VECTORIZER_PATH = './lib/text_vectorizer.lib'
 TRAINING_DATAFRAME_PATH = './lib/training_df.lib'
 TARGET_DATAFRAME_PATH = './lib/target_df.lib'
 KEYWORD_LBE_PATH = './lib/keyword_lbe.lib'
 USE_LABEL_ENCODER = False
-SAVE_MODEL = False
-USE_LEMMATIZER = False
+SAVE_MODEL = True
+USE_LEMMATIZER = True
 USE_LANCASTER_STEM = False
 
 def download_nltk_package():
@@ -142,15 +142,8 @@ def pre_process_text(df, use_lemmatizer, use_lancaster_stem):
         
 def pre_processing(df, keyword_ohe_path, keyword_lbe_path, text_vectorizer_path, 
                    df_path, save_model, use_label_encoder, use_lemmmatizer, 
-                   use_lancaster_stem, target_df_path, vectorizer_input):
+                   use_lancaster_stem, vectorizer_input):
 
-    # drop column location which have so many missing values
-    # preprocess_df = df.drop(columns='location')
-    # drop all row that column keyword is NaN
-    # preprocess_df = preprocess_df.dropna()
-    # separate label from other attributes and reset index of the label
-    # label = preprocess_df.iloc[:,-1]
-    # label = label.reset_index(drop=True)
     preprocess_df = df
     shape = preprocess_df.shape[1]
 
@@ -236,17 +229,24 @@ X = X.drop(columns=['id', 'target'])
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, shuffle=True)
 
-X_train, vectorizer = pre_processing(X_train, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
-                    TRAINING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
-                    USE_LEMMATIZER, USE_LANCASTER_STEM, TARGET_DATAFRAME_PATH, None)
+# X_train, vectorizer = pre_processing(X_train, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
+#                     TRAINING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
+#                     USE_LEMMATIZER, USE_LANCASTER_STEM, None)
 
-X_test, _ = pre_processing(X_test, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
-                    TRAINING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
-                    USE_LEMMATIZER, USE_LANCASTER_STEM, TARGET_DATAFRAME_PATH, vectorizer)
+# X_test, _ = pre_processing(X_test, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
+#                     TARGET_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
+#                     USE_LEMMATIZER, USE_LANCASTER_STEM, vectorizer)
 
-# clf = LinearSVC()
-# clf = RandomForestClassifier()
-clf = BernoulliNB()
+X_train = load(TRAINING_DATAFRAME_PATH)
+vectorizer = load(TEXT_VECTORIZER_PATH)
+X_test = load(TARGET_DATAFRAME_PATH)
+
+
+# clf = BernoulliNB()
+# clf = MultinomialNB()
+# clf = GaussianNB()
+clf = RandomForestClassifier(n_jobs=3, n_estimators=200, verbose=True)
+
 # clf = LogisticRegression(c=1, penalty='l2')
 clf.fit(X_train, y_train)
 
