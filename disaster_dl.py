@@ -17,6 +17,7 @@ from sklearn.metrics import accuracy_score, classification_report, f1_score, pre
 
 
 GLOVE = './glove/glove.6B.100d.txt'
+GLOVE_2 = './glove/glove.twitter.27B.100d.txt'
 DIMS = 100
 TRAINING_FILE_NAME = 'dataset/train.csv'
 
@@ -75,7 +76,7 @@ vocab_length = len(tokenizer.word_index) + 1
 
 # read GloVe and save into embedding_dict
 embedding_dict= {}
-with open(GLOVE,'r', encoding='utf-8') as f:
+with open(GLOVE_2,'r', encoding='utf-8') as f:
     for line in f:
         values = line.split()
         word = values[0]
@@ -86,7 +87,7 @@ f.close()
 
 # store word that is in GloVe in embedding_matrix
 embedding_matrix = np.zeros((vocab_length , DIMS))
-print(tokenizer.word_index.items())
+# print(tokenizer.word_index.items())
 for word, i in tokenizer.word_index.items():
     embedding_vector = embedding_dict.get(word)
 
@@ -99,7 +100,7 @@ print(embedding_matrix.shape)
 # find longest tokenenized sentence and convert other sentence to the same length
 longest_train = max(X, key=lambda sentence: len(word_tokenize(sentence)))
 length_long_sentence = len(word_tokenize(longest_train))
-padded_sentence = pad_sequences(tokenizer.texts_to_sequences(), length_long_sentence, padding='post')
+padded_sentence = pad_sequences(tokenizer.texts_to_sequences(X), length_long_sentence, padding='post')
 
 embedding = Embedding(input_dim=embedding_matrix.shape[0]
                       ,output_dim=embedding_matrix.shape[1]
@@ -120,7 +121,7 @@ print(model.summary())
 X_train, X_test, y_train, y_test = train_test_split(padded_sentence, y,test_size=0.25)
 
 checkpoint = ModelCheckpoint(
-    'model.h5',
+    'model_2.h5',
     monitor='val_loss',
     verbose=1,
     save_best_only=True
@@ -136,7 +137,7 @@ reduce_lr = ReduceLROnPlateau(
 
 history = model.fit(X_train
                     ,y_train
-                    ,epochs=7
+                    ,epochs=20
                     ,batch_size=32
                     ,validation_data=[X_test, y_test]
                     ,verbose = 1
@@ -149,7 +150,7 @@ print('Accuracy:', accuracy)
 preds = model.predict_classes(X_test)
 metrics(preds, y_test)
 
-model.load_weights('model.h5')
+model.load_weights('model_2.h5')
 preds = model.predict_classes(X_test)
 metrics(preds, y_test)
 
