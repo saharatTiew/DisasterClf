@@ -52,7 +52,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, shuffl
 # clf = GaussianNB()
 # clf = RandomForestClassifier(n_jobs=3, n_estimators=500, verbose=True)
 # clf = SVC(kernel='linear')
-# clf = LogisticRegression(class_weight='balanced', solver='newton-cg')
+clf = LogisticRegression(class_weight='balanced', solver='newton-cg')
 # clf = AdaBoostClassifier(n_estimators=500)
 clf.fit(X_train, y_train)
 print(clf)
