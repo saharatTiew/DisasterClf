@@ -1,3 +1,5 @@
 /glove
 /.vscode
 /lib
+model.h5
+model_2.h5
