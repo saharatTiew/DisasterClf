@@ -16,7 +16,7 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.naive_bayes import MultinomialNB, GaussianNB, BernoulliNB
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC, SVC
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.preprocessing import MinMaxScaler
 from scipy.sparse import csr_matrix
@@ -34,9 +34,14 @@ TESTING_TARGET_PATH = './lib/testing_target.lib'
 TESTING_DATAFRAME_PATH = './lib/target_df.lib'
 KEYWORD_LBE_PATH = './lib/keyword_lbe.lib'
 USE_LABEL_ENCODER = False
-SAVE_MODEL = True
-USE_LEMMATIZER = True
-USE_LANCASTER_STEM = False
+SAVE_MODEL = False
+USE_LEMMATIZER = False
+USE_LANCASTER_STEM = True
+
+TEST_PREDICT_FILE = './dataset/test.csv'
+SUBMISSION_FILE = './submission/disaster_clf.csv'
+SAMPLE_SUBMISSION_FILE = './dataset/sample_submission.csv'
+
 
 def download_nltk_package():
     nltk.download('averaged_perceptron_tagger')
@@ -107,7 +112,7 @@ def pre_process_text(df, use_lemmatizer, use_lancaster_stem):
         # remove word that is not in English corpus and transform them to lower case
         text = " ".join(w.lower() for w in nltk.wordpunct_tokenize(text) if w.lower() in words)
 
-        # # remove http tag
+        # remove http tag
         text = re.sub('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+#]|[!*\(\),]|'\
                 '(?:%[0-9a-fA-F][0-9a-fA-F]))+','', text)
         
@@ -139,7 +144,6 @@ def pre_process_text(df, use_lemmatizer, use_lancaster_stem):
         texts.append(text)
 
     df['text'] = texts
-    # print(df['text'])
     return df
         
 def pre_processing(df, keyword_ohe_path, keyword_lbe_path, text_vectorizer_path, 
@@ -188,10 +192,8 @@ def pre_processing(df, keyword_ohe_path, keyword_lbe_path, text_vectorizer_path,
         text_vector = vectorizer_input.transform(preprocess_df['text']).toarray()
 
     # # Truncated svd to remove dimensionality for sparse data
-    # svd = TruncatedSVD(n_components=400, n_iter=10, random_state=42)
-    # # svd = TruncatedSVD(n_components=2, n_iter=10, random_state=42)
+    # svd = TruncatedSVD(n_components=100, n_iter=10, random_state=42)
     # text_vector_tran = svd.fit_transform(text_vector)
-    
     # new_text = pd.DataFrame(text_vector_tran)
     
     new_text = pd.DataFrame(text_vector)
@@ -230,37 +232,40 @@ X = X.dropna()
 y = X['target']
 X = X.drop(columns=['id', 'target'])
 
-# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, shuffle=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, shuffle=True)
 
-# X_train, vectorizer = pre_processing(X_train, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
-#                     TRAINING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
-#                     USE_LEMMATIZER, USE_LANCASTER_STEM, None)
+X_train, vectorizer = pre_processing(X_train, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
+                    TRAINING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
+                    USE_LEMMATIZER, USE_LANCASTER_STEM, None)
 
-# if SAVE_MODEL:
-#     dump(y_train, TRAINING_TARGET_PATH)
-#     dump(y_test, TESTING_TARGET_PATH) 
+if SAVE_MODEL:
+    dump(y_train, TRAINING_TARGET_PATH)
+    dump(y_test, TESTING_TARGET_PATH) 
 
-# X_test, _ = pre_processing(X_test, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
-#                     TESTING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
-#                     USE_LEMMATIZER, USE_LANCASTER_STEM, vectorizer)
+X_test, _ = pre_processing(X_test, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
+                    TESTING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
+                    USE_LEMMATIZER, USE_LANCASTER_STEM, vectorizer)
 
-X_train = load(TRAINING_DATAFRAME_PATH)
-vectorizer = load(TEXT_VECTORIZER_PATH)
-X_test = load(TESTING_DATAFRAME_PATH)
-y_train = load(TRAINING_TARGET_PATH)
-y_test = load(TESTING_TARGET_PATH)
+# load model file, in case it's need
+# X_train = load(TRAINING_DATAFRAME_PATH)
+# vectorizer = load(TEXT_VECTORIZER_PATH)
+# X_test = load(TESTING_DATAFRAME_PATH)
+# y_train = load(TRAINING_TARGET_PATH)
+# y_test = load(TESTING_TARGET_PATH)
 
+# perform scaling (to fix negative value when training MultinomialNB())
 # scaler = MinMaxScaler()
 # X_train = scaler.fit_transform(X_train)
 # scaler = MinMaxScaler()
 # X_test = scaler.fit_transform(X_test)
 
 
-# clf = BernoulliNB()
+clf = BernoulliNB()
 # clf = MultinomialNB()
 # clf = GaussianNB()
 # clf = RandomForestClassifier(n_jobs=3, n_estimators=500, verbose=True)
-clf = LinearSVC()
+# clf = LinearSVC()
+# clf = SVC(kernel='linear')
 # clf = LogisticRegression()
 
 clf.fit(X_train, y_train)
@@ -268,3 +273,16 @@ print(clf)
 y_pred = clf.predict(X_test)
 print(accuracy_score(y_pred, y_test))
 print(classification_report(y_pred, y_test))
+
+# prepare file to submission to kaggle
+test = read_csv(TEST_PREDICT_FILE)
+sample_sub= read_csv(SAMPLE_SUBMISSION_FILE)
+test = test.drop(columns=['location', 'id'])
+test['keyword'] = test['keyword'].fillna('ablaze')
+
+test, _ = pre_processing(test, KEYWORD_OHE_PATH, KEYWORD_LBE_PATH, TEXT_VECTORIZER_PATH, 
+                    TRAINING_DATAFRAME_PATH, SAVE_MODEL, USE_LABEL_ENCODER, 
+                    USE_LEMMATIZER, USE_LANCASTER_STEM, vectorizer)
+
+sample_sub['target'] = clf.predict(test)
+sample_sub.to_csv(SUBMISSION_FILE,index=False)

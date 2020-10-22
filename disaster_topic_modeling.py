@@ -15,7 +15,18 @@ TOPIC_5 = './topic_modeling_data/topic-5-dis-vector.csv'
 TOPIC_222_BIGRAM = './topic_modeling_data/topic-222-bigram-dis-vector.csv'
 TOPIC_222 = './topic_modeling_data/topic-222-dis-vector.csv'
 
+TOPIC_5_BIGRAM_NEW = './topic_modeling_data/topic_modeling_new/topic-5-bigram-new-dis-vector.csv'
+TOPIC_5_NEW = './topic_modeling_data/topic_modeling_new/topic-5-new-dis-vector.csv'
+TOPIC_222_BIGRAM_NEW = './topic_modeling_data/topic_modeling_new/topic-222-bigram-new-dis-vector.csv'
+TOPIC_222_NEW = './topic_modeling_data/topic_modeling_new/topic-222-new-dis-vector.csv'
+
+TEST_PREDICT_FILE = './dataset/topic-test-222-dis-vector.csv'
+SUBMISSION_FILE = './submission/disaster_topic_modelling.csv'
+SAMPLE_SUBMISSION_FILE = './dataset/sample_submission.csv'
+
 def read_csv(file_name):
+    print(str(file_name))
+    print('------------------------------')
     data = pd.read_csv(file_name)
 
     # create dataframe
@@ -23,39 +34,37 @@ def read_csv(file_name):
 
     return train_df
 
-# df = read_csv(TOPIC_5_BIGRAM).drop_duplicates()
-df = read_csv(TOPIC_222_BIGRAM)
+df = read_csv(TOPIC_222_NEW)
 # print(df)
-# d_1 = df.loc[df['target'] == 1]
-# d_0 = df.loc[df['target'] == 0]
-
-# d_1.to_csv('1.csv', index=False)
-# d_0.to_csv('0.csv', index=False)
 
 y = df['target']
 X = df.drop(columns=['Unnamed: 0', 'target'])
-# pca = PCA(n_components=20)
-# X = pca.fit_transform(X)
-# print(X)
-
-# scaler = StandardScaler()
-# X = scaler.fit_transform(X)
-# print(X)
-
-# feature_locations = df['target'].value_counts()
-# print(feature_locations)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, shuffle=True)
 
+# classification model
+# these 3 models, especially BernoulliNB does not work well with these dataset
 # clf = BernoulliNB()
 # clf = MultinomialNB()
-# clf = GaussianNB()
-# clf = RandomForestClassifier(n_jobs=3, n_estimators=500, verbose=True)
 # clf = SVC(kernel='linear')
-clf = LogisticRegression(class_weight='balanced', solver='newton-cg')
+
+# clf = GaussianNB()
+clf = RandomForestClassifier(n_jobs=3, n_estimators=500, verbose=True)
+# clf = LogisticRegression(class_weight='balanced', solver='newton-cg')
 # clf = AdaBoostClassifier(n_estimators=500)
+
 clf.fit(X_train, y_train)
+
 print(clf)
 y_pred = clf.predict(X_test)
 print(accuracy_score(y_pred, y_test))
 print(classification_report(y_pred, y_test))
+
+
+# prepare file to submission to kaggle
+test = read_csv(TEST_PREDICT_FILE)
+sample_sub= read_csv(SAMPLE_SUBMISSION_FILE)
+test = test.drop(columns=['Unnamed: 0'])
+
+sample_sub['target'] = clf.predict(test)
+sample_sub.to_csv(SUBMISSION_FILE,index=False)
